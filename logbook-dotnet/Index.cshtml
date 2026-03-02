@@ -1,0 +1,10 @@
+@foreach (var log in Model.Logs)
+{
+    <div class="log-entry">
+        <p>Date: @log.Timestamp</p>
+        
+        <p>Message: @Html.Raw(log.Content)</p> 
+        
+        </div>
+    <hr />
+}

@@ -1,96 +1,55 @@
-using Microsoft.Data.Sqlite;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 
-string dbPath = "logbook.db";
-string connectionString = $"Data Source={dbPath}";
-
-// Initialize the database
-InitializeDatabase();
-
-Console.WriteLine("--- Welcome to your .NET Logbook ---");
-
-while (true)
+public class LogController : Controller
 {
-    Console.WriteLine("\nChoose an option: [1] Add Entry [2] View All [3] Exit");
-    var choice = Console.ReadLine();
+    private string _connectionString = "Server=localhost;Database=LogbookDB;Trusted_Connection=True;TrustServerCertificate=True;";
 
-    if (choice == "1") AddEntry();
-    else if (choice == "2") ViewEntries();
-    else if (choice == "3") break;
-    else Console.WriteLine("Invalid option.");
-}
-
-void InitializeDatabase()
-{
-    using (var connection = new SqliteConnection(connectionString))
+    // 1. VULNERABLE ENDPOINT: Takes 'message' directly from the URL
+    // Example: /Log/Add?message=Hello
+    [HttpGet("Add")]
+    public IActionResult Add(string message)
     {
-        connection.Open();
-        var command = connection.CreateCommand();
-        command.CommandText = 
-        @"
-            CREATE TABLE IF NOT EXISTS Logs (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                Content TEXT NOT NULL
-            );
-        ";
-        command.ExecuteNonQuery();
-    }
-}
-
-/*
-void AddEntry()
-{
-    Console.Write("Enter your log message: ");
-    string content = Console.ReadLine() ?? "";
-
-    using (var connection = new SqliteConnection(connectionString))
-    {
-        connection.Open();
-        var command = connection.CreateCommand();
-        
-        // VULNERABLE: Direct string interpolation
-        command.CommandText = $"INSERT INTO Logs (Content) VALUES ('{content}')";
-        
-        command.ExecuteNonQuery();
-    }
-    Console.WriteLine("Log saved (dangerously)!");
-}
-*/
-
-void AddEntry()
-{
-    Console.Write("Enter your log message: ");
-    string content = Console.ReadLine() ?? "";
-
-    using (var connection = new SqliteConnection(connectionString))
-    {
-        connection.Open();
-        var command = connection.CreateCommand();
-        command.CommandText = "INSERT INTO Logs (Content) VALUES ($content)";
-        command.Parameters.AddWithValue("$content", content);
-        command.ExecuteNonQuery();
-    }
-    Console.WriteLine("Log saved!");
-}
-
-void ViewEntries()
-{
-    Console.WriteLine("\n--- Your Logs ---");
-    using (var connection = new SqliteConnection(connectionString))
-    {
-        connection.Open();
-        var command = connection.CreateCommand();
-        command.CommandText = "SELECT Id, Timestamp, Content FROM Logs ORDER BY Timestamp DESC";
-
-        using (var reader = command.ExecuteReader())
+        using (var connection = new SqlConnection(_connectionString))
         {
-            while (reader.Read())
+            connection.Open();
+            
+            // DANGER: SQL INJECTION (Raw Query)
+            // If message is: '); DROP TABLE Logs;--
+            string sql = "INSERT INTO Logs (Content) VALUES ('" + message + "')";
+            
+            var command = new SqlCommand(sql, connection);
+            command.ExecuteNonQuery();
+        }
+
+        return Content($"Logged: {message}");
+    }
+
+    // 2. VULNERABLE DISPLAY: Renders logs from the database
+    [HttpGet("View")]
+    public IActionResult ViewLogs()
+    {
+        var logs = new List<string>();
+
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            connection.Open();
+            var command = new SqlCommand("SELECT Content FROM Logs", connection);
+            using (var reader = command.ExecuteReader())
             {
-                var id = reader.GetInt32(0);
-                var time = reader.GetDateTime(1);
-                var text = reader.GetString(2);
-                Console.WriteLine($"[{id}] {time:yyyy-MM-dd HH:mm} - {text}");
+                while (reader.Read()) logs.Add(reader.GetString(0));
             }
         }
+
+        // DANGER: XSS (Html.Raw)
+        // If a log contains <script>alert(1)</script>, it will execute in the browser.
+        string htmlOutput = "<h1>User Logs</h1><ul>";
+        foreach (var log in logs)
+        {
+            htmlOutput += $"<li>{log}</li>"; // In a real Razor view, you'd use @Html.Raw(log)
+        }
+        htmlOutput += "</ul>";
+
+        return Content(htmlOutput, "text/html");
     }
 }
