@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5147",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "MY_LOGBOOK_API_KEY": "AIzaSyDaGmWKa4JsXZ-HjGw7ISLn_3namBGewQe"
+      }
+    }
+  }
+}
