@@ -37,7 +37,6 @@ void InitializeDatabase()
     }
 }
 
-/*
 void AddEntry()
 {
     Console.Write("Enter your log message: ");
@@ -55,23 +54,23 @@ void AddEntry()
     }
     Console.WriteLine("Log saved (dangerously)!");
 }
-*/
 
-void AddEntry()
-{
-    Console.Write("Enter your log message: ");
-    string content = Console.ReadLine() ?? "";
 
-    using (var connection = new SqliteConnection(connectionString))
-    {
-        connection.Open();
-        var command = connection.CreateCommand();
-        command.CommandText = "INSERT INTO Logs (Content) VALUES ($content)";
-        command.Parameters.AddWithValue("$content", content);
-        command.ExecuteNonQuery();
-    }
-    Console.WriteLine("Log saved!");
-}
+// void AddEntry()
+// {
+//     Console.Write("Enter your log message: ");
+//     string content = Console.ReadLine() ?? "";
+
+//     using (var connection = new SqliteConnection(connectionString))
+//     {
+//         connection.Open();
+//         var command = connection.CreateCommand();
+//         command.CommandText = "INSERT INTO Logs (Content) VALUES ($content)";
+//         command.Parameters.AddWithValue("$content", content);
+//         command.ExecuteNonQuery();
+//     }
+//     Console.WriteLine("Log saved!");
+// }
 
 void ViewEntries()
 {
