@@ -1,7 +1,7 @@
 using Microsoft.Data.Sqlite;
 
 string dbPath = "logbook.db";
-string connectionString = $"Data Source={dbPath}";
+string connectionString = "Server=localhost;Database=LogbookDB;Trusted_Connection=True;TrustServerCertificate=True;";
 
 // Initialize the database
 InitializeDatabase();
@@ -37,24 +37,34 @@ void InitializeDatabase()
     }
 }
 
-void AddEntry()
+void AddEntryRaw()
 {
-    Console.Write("Enter your log message: ");
-    string content = Console.ReadLine() ?? "";
+    Console.Write("Enter log content: ");
+    string userInput = Console.ReadLine() ?? "";
 
-    using (var connection = new SqliteConnection(connectionString))
+    using (var connection = new SqlConnection(connectionString))
     {
         connection.Open();
-        var command = connection.CreateCommand();
         
-        // VULNERABLE: Direct string interpolation
-        command.CommandText = $"INSERT INTO Logs (Content) VALUES ('{content}')";
+        // THE VULNERABILITY: String concatenation
+        // This is exactly what an attacker wants to see.
+        string sql = "INSERT INTO Logs (Content, CreatedAt) VALUES ('" + userInput + "', GETDATE())";
         
-        command.ExecuteNonQuery();
+        using (var command = new SqlCommand(sql, connection))
+        {
+            try 
+            {
+                command.ExecuteNonQuery();
+                Console.WriteLine("Log saved successfully.");
+            }
+            catch (Exception ex)
+            {
+                // Error messages often leak database structure to attackers
+                Console.WriteLine($"Database Error: {ex.Message}");
+            }
+        }
     }
-    Console.WriteLine("Log saved (dangerously)!");
 }
-
 
 // void AddEntry()
 // {
