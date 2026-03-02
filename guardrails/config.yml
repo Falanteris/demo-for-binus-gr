@@ -1,0 +1,10 @@
+monorepo:
+ - /logbook/*:
+      bundles:
+        - php
+        - general
+ - /logbook-dotnet/*:
+      bundles:
+        - dotnet
+        - general
+      
