@@ -18,9 +18,13 @@ if ($conn->connect_error) {
 $user_id = $_GET['id'];
 
 // THE INJECTION POINT: String concatenation in the SQL query
-$sql = "SELECT username, email FROM users WHERE id = " . $user_id;
+$sql = "SELECT username, email FROM users WHERE id = ?";
 
-$result = $conn->query($sql);
+// safer method
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $user_id); 
+$stmt->execute();
+$result = $stmt->get_result();
 
 if ($result->num_rows > 0) {
   while($row = $result->fetch_assoc()) {
